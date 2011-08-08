@@ -66,7 +66,9 @@ task({ 'minify': [ 'version' ] }, function () {
     }, function() {
         var rexp_base_name = new RegExp("^lib/(.+)\\.js$"),
             jsp = require("uglify-js").parser,
-            pro = require("uglify-js").uglify;
+            pro = require("uglify-js").uglify,
+            dateformatjs = require('dateformatjs'),
+            dateformat = new dateformatjs.DateFormat(dateformatjs.DateFormat.ISO8601);
 
         forEachFile('lib', function (err, file, stats, cbDone) {
             if (err) throw err;
@@ -82,7 +84,7 @@ task({ 'minify': [ 'version' ] }, function () {
                             "// -- Sammy.js -- " + m[1] + ".js",
                             "// http://sammyjs.org",
                             "// Version: " + version,
-                            "// Built: " + new Date() + "\n"
+                            "// Built: " + dateformat.format(new Date()) + "\n"
                         ].join("\n") + pro.gen_code(pro.ast_squeeze(pro.ast_mangle(jsp.parse(src)))),
                         dir = 'lib/min';
                     fs.writeFile(path.join(dir, m[1] + "-" + version + ".min.js"), minified, function (err) {
