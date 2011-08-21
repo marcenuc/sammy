@@ -106,11 +106,12 @@ task({ 'minify': [ 'version' ] }, function () {
     });
 }, true);
 
-function simple_exec(cmd) {
+function simple_exec(cmd, cbDone) {
     child_process.exec(cmd, function (err, stdout, stderr) {
         if (stdout) console.log(stdout);
-        if (stderr) console.log(stderr);
+        if (stderr) console.error(stderr);
         if (err) throw err;
+        if (cbDone) cbDone();
     });
 }
 
@@ -188,42 +189,21 @@ task({ 'docs': [ 'version' ] }, function () {
 
 desc('Check sources with JSHint.');
 task('lint', function () {
-    var JSHINT = require('./vendor/jshint.js').JSHINT;
-
-    function checkFile(file, cbDone) {
-        fs.readFile(file, 'utf8', function (err, src) {
-            if (err) throw err;
-
-            var res = [],
-                line;
-
-            if (!JSHINT(src)) {
-                res.push("\n" + file);
-                JSHINT.errors.forEach(function (e) {
-                    if (e) {
-                        if (line !== e.line) {
-                            line = e.line;
-                            res.push(line + ": " + e.evidence);
-                        }
-                        res.push("\t" + e.reason);
-                    }
-                });
-                console.log(res.join('\n'));
-            }
-
-            cbDone();
-        });
-    }
+    var lint = [ './node_modules/.bin/jshint', 'Jakefile.js' ];
 
     forEachFile('lib', function (err, file, stats, cbDone) {
         if (err) throw err;
 
-        if (rexp_minified.test(file) || !rexp_src.test(file)) {
-            cbDone();
-        } else {
-            checkFile(file, cbDone);
+        if (!rexp_minified.test(file) && rexp_src.test(file)) {
+            lint.push(file);
         }
+        cbDone();
     }, function() {
-        checkFile('Jakefile.js', complete);
+        child_process.exec(lint.join(' '), function (err, stdout, stderr) {
+            if (stdout) console.log(stdout);
+            if (stderr) console.error(stderr);
+            if (err && err.code !== 1) throw err;
+            complete();
+        });
     });
 }, true);
